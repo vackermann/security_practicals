@@ -10,8 +10,36 @@ class DESPrac
     {
         long testP=0x1234567887654321L;
         long testK=0x33333333333333L;
-        // ...
 
+
+        // Task 1
+
+        // Encrypt testPlaintext with testKey
+        long testC = TwoRoundModifiedDES(testK, testP);
+        System.out.println("Feisteled this cipher: \n \n \n "+Long.toHexString(testC));
+
+        // Perform 1000 encryption and meassure runtime
+        long timeStart = System.nanoTime();
+        for (int i =0; i < 1000; i++) {
+          TwoRoundModifiedDES(testK, testP);
+        }
+        long endTime = System.nanoTime();
+
+        BigInteger timeDiffInNanoSeconds = BigInteger.valueOf(endTime-timeStart);
+        BigInteger nanosToSeconds = BigInteger.valueOf(1000000000);
+        BigInteger secondsToYears = BigInteger.valueOf(60*60*24*365);
+
+        long numAttacks = (long) Math.pow(2,55);
+        BigInteger totalTime= BigInteger.valueOf(numAttacks).multiply(timeDiffInNanoSeconds).divide(BigInteger.valueOf(1000));
+        System.out.println("total time before divide : "+totalTime);
+        totalTime = totalTime.divide(nanosToSeconds);
+        totalTime = totalTime.divide(secondsToYears);
+        System.out.println("numAttacks: "+numAttacks);
+        System.out.println("nanosToSeconds: "+nanosToSeconds);
+        System.out.println("secondsToYears: "+secondsToYears);
+        System.out.println("totalTime: "+totalTime);
+        System.out.println("Took "+timeDiffInNanoSeconds+" ns to perform 1000 encryptions.");
+        System.out.println("An exhaustion attack for a key of size 56 bit takes 2^55 tries on average. Thus, we'd expect it to take around "+totalTime+" years to break our cipher.");
     }
 
 
@@ -45,9 +73,19 @@ class DESPrac
     static long Feistel(long R, long K) // input is a 32-bit integer and 48-bit key, both stored in 64-bit signed "long"s; returns the output of the Feistel round
     {
         long F;
-        // ...
+        //  Expansion
+        F = EBox(R);
+        // xor with key
+        F = F ^ K;
+        // S-boxes
+        F = SBox(F);
+        // P boxes
+        F = PBox(F);
+        // xor with 32-bits subkey
+        long subkey = K&MASK32;
+        F = F ^ subkey;
 
-    return(F);
+        return(F);
     }
 
     // NB: these differ from the tables in the DES standard because the latter are encoded in a strange order
