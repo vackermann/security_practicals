@@ -3,6 +3,8 @@ import java.io.*;
 import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Arrays;
+
 
 class DESPrac
 {
@@ -13,7 +15,7 @@ class DESPrac
 
 
         // Task 1
-
+        /*
         // Encrypt testPlaintext with testKey
         long testC = TwoRoundModifiedDES(testK, testP);
         System.out.println("Feisteled this cipher: \n \n \n "+Long.toHexString(testC));
@@ -40,12 +42,212 @@ class DESPrac
         System.out.println("totalTime: "+totalTime);
         System.out.println("Took "+timeDiffInNanoSeconds+" ns to perform 1000 encryptions.");
         System.out.println("An exhaustion attack for a key of size 56 bit takes 2^55 tries on average. Thus, we'd expect it to take around "+totalTime+" years to break our cipher.");
+        */
+
+        // Task 2
+
+        //differentialDistributionTable(2);
+
+        //Task 3
+
+	       //getE1Diff(0x60000000);
+         //getE1Diff(0x02000000L);
+	       reduceOptionsForKn("a");
+
+         // TASK 4
+         reduceOptionsForKn("b");
+
+
+
+
+         /* Code used to find InputDiff and OutputDiff for Task 4
+         long DeltaO = 0b111;
+         DeltaO = DeltaO << 24;
+         System.out.println(Long.toBinaryString(DeltaO));
+         long DeltaF = PBox(DeltaO);
+         System.out.println(Long.toBinaryString(DeltaF));
+         long DeltaR = DeltaF ^ (0x40004010);
+         System.out.println(Long.toHexString(DeltaR));
+         */
+
     }
 
+    static void getE1Diff (long DeltaR) {
+      long E1Delta = EBox(DeltaR);
+      long E1DeltaA = (E1Delta>>42);
+      long E1DeltaB = (E1Delta>>36);
+      System.out.println(Long.toBinaryString(E1DeltaA));
+      System.out.println(Long.toBinaryString(E1DeltaB));
+    }
 
-    static void differentialDistributionTable (int SBoxNumber)
+    static void reduceOptionsForKn(String n) throws IOException {
+      Random prng = new Random();
+      int numTries = 0;
+
+      // Initialization depends on for which subkey n we want to reduce options
+      int SBoxNumber;
+      byte inputDiff;
+      byte outputDiff;
+      long DeltaP;
+      int bitwiseMoveForEn;
+      long hittingDiff;
+      if (n.equals("a")) {
+        SBoxNumber = 1;
+        inputDiff = 0x0C;
+        outputDiff = 0xD;
+        DeltaP = 0x0080800260000000L;
+        hittingDiff = 0x0000000060000000L;
+        bitwiseMoveForEn = 42;
+      } else {
+        SBoxNumber = 2;
+        inputDiff = 0b100;
+        outputDiff = 0b111;
+        DeltaP = 0x4000401002000000L;
+        hittingDiff = 0x0000000002000000L;
+        bitwiseMoveForEn = 36;
+      }
+
+      // Initally, all values between 0 and 64 could be the 6-bit subkey Kn
+      HashSet<Byte> options = new HashSet<Byte>();
+      for (byte i = 0; i<0x20; i++) {
+        options.add(i);
+      }
+
+      // Find all inputs of the respective SBox that match inputDiff->outputDif
+      int[] PI = getPossibleInputs(SBoxNumber, inputDiff, outputDiff);
+
+      //for(int b: PI) {
+      //  System.out.println(b);
+      //}
+
+      // Try encrypting random P's to reduce options for subkey Kn
+      while(options.size()>2 && numTries<100) {
+        numTries++;
+        long P = prng.nextLong();
+        long P_=P^DeltaP;
+        long C = callEncrypt(P);
+        long C_ = callEncrypt(P_);
+        long CC_Diff = C_^C;
+
+        //Hitting the characteristic
+        if (CC_Diff==hittingDiff) {
+
+          // Compute E1n from R0
+          long R0=P&MASK32;
+          long E1 = EBox(R0);
+          long E1n = (E1 >> bitwiseMoveForEn) & 0b111111;
+          //System.out.println(Long.toBinaryString(E1)+ " => "+ Long.toBinaryString(E1n));
+
+          // Generate all possible keys (for all i in PIi: E1n ^ PIi)
+          int[] pkForP = new int[PI.length];
+          for (int i = 0; i<PI.length; i++) {
+            pkForP[i] = (int)E1n ^ PI[i];
+          }
+
+          // remove all keys from options that are not in list of possible keys
+          HashSet<Byte> toRemove = new HashSet<Byte>();
+          for (Byte option : options) {
+            boolean optionInPK = Arrays.stream(pkForP).anyMatch(i -> i == option);
+            if (!optionInPK && options.contains(option)) {
+              toRemove.add(option);
+            }
+          }
+          for (byte option : toRemove) {
+            options.remove(option);
+          }
+        }
+      }
+      // Print all final options for Kn
+      System.out.println("Narrowed options for K_"+n+" down to: ");
+      for (Byte option : options) {
+        System.out.println(Integer.toBinaryString(option));
+      }
+    }
+
+    static int[] getPossibleInputs(int SBoxNumber, byte inputDiff, byte outputDiff) {
+      byte[] STable = S1Table;
+      switch (SBoxNumber) {
+          case 1:  STable = S1Table;
+                   break;
+          case 2:  STable = S2Table;
+                   break;
+          case 3:  STable = S3Table;
+                   break;
+          case 4:  STable = S4Table;
+                   break;
+          case 5:  STable = S5Table;
+                   break;
+          case 6:  STable = S6Table;
+                   break;
+          case 7:  STable = S7Table;
+                   break;
+          case 8:  STable = S8Table;
+                   break;
+      }
+
+      HashSet<Integer> possibleInputs = new HashSet<Integer>();
+      for (int input = 0; input < 64; input++) {
+        int input_ = input^inputDiff;
+        int out = STable[input]^STable[input_];
+        if (out == outputDiff) {
+          possibleInputs.add(input);
+        }
+      }
+
+      int[] PI = new int[possibleInputs.size()];
+      int i = 0;
+      for (int pi : possibleInputs) {
+        PI[i] = pi;
+        i++;
+      }
+      return PI;
+    }
+
+    static int[][] differentialDistributionTable (int SBoxNumber)
     {
-        // ...
+        byte[] STable = S1Table;
+        switch (SBoxNumber) {
+            case 1:  STable = S1Table;
+                     break;
+            case 2:  STable = S2Table;
+                     break;
+            case 3:  STable = S3Table;
+                     break;
+            case 4:  STable = S4Table;
+                     break;
+            case 5:  STable = S5Table;
+                     break;
+            case 6:  STable = S6Table;
+                     break;
+            case 7:  STable = S7Table;
+                     break;
+            case 8:  STable = S8Table;
+                     break;
+        }
+
+        int[][] distributionTable = new int[64][16];
+        for (int inputDiff = 0; inputDiff<64; inputDiff++){
+          for (int input = 0; input<64; input++) {
+            int pairedInput = input^inputDiff;
+            byte output1 = STable[input];
+            byte output2 = STable[pairedInput];
+            int outputDiff = output1^output2;
+            distributionTable[inputDiff][outputDiff]++;
+          }
+        }
+        for (int inputDiff = 0; inputDiff<64; inputDiff++){
+          for (int outputDiff = 0; outputDiff<16; outputDiff++) {
+            if (inputDiff==0b100) {
+              // Can be used to visualize differential distribution for Task 4
+              //System.out.println("THIS > "+outputDiff+" ");
+            }
+            System.out.print(distributionTable[inputDiff][outputDiff]+" ");
+          }
+          System.out.println();
+        }
+        return distributionTable;
+        // get set of pairs for differentials (should be 64 pairs)
+        // for each output diff, add num of pairs with respective differential
     }
 
     // constants for &-ing with, to mask off everything but the bottom 32- or 48-bits of a long
