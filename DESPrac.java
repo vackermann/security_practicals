@@ -15,10 +15,11 @@ class DESPrac
 
 
         // Task 1
-        /*
+        System.out.println("\n \n -----------------Task 1------------------\n\n");
+
         // Encrypt testPlaintext with testKey
         long testC = TwoRoundModifiedDES(testK, testP);
-        System.out.println("Feisteled this cipher: \n \n \n "+Long.toHexString(testC));
+        System.out.println("Feisteled this cipher: \n \n "+Long.toHexString(testC)+"\n");
 
         // Perform 1000 encryption and meassure runtime
         long timeStart = System.nanoTime();
@@ -33,34 +34,31 @@ class DESPrac
 
         long numAttacks = (long) Math.pow(2,55);
         BigInteger totalTime= BigInteger.valueOf(numAttacks).multiply(timeDiffInNanoSeconds).divide(BigInteger.valueOf(1000));
-        System.out.println("total time before divide : "+totalTime);
         totalTime = totalTime.divide(nanosToSeconds);
         totalTime = totalTime.divide(secondsToYears);
-        System.out.println("numAttacks: "+numAttacks);
-        System.out.println("nanosToSeconds: "+nanosToSeconds);
-        System.out.println("secondsToYears: "+secondsToYears);
-        System.out.println("totalTime: "+totalTime);
-        System.out.println("Took "+timeDiffInNanoSeconds+" ns to perform 1000 encryptions.");
-        System.out.println("An exhaustion attack for a key of size 56 bit takes 2^55 tries on average. Thus, we'd expect it to take around "+totalTime+" years to break our cipher.");
-        */
+        System.out.println("Took "+timeDiffInNanoSeconds+" ns to perform 1000 encryptions."+"\n");
+        System.out.println("An exhaustion attack for a key of size 56 bit takes 2^55 tries on average. Thus, we'd expect it to take around "+totalTime+" years to break our cipher."+"\n");
 
         // Task 2
+        System.out.println("\n \n -----------------Task 2------------------\n\n");
 
-        //differentialDistributionTable(2);
+        System.out.println("Differential distribution table for SBox1: \n");
+        differentialDistributionTable(2);
 
         //Task 3
+        System.out.println("\n \n -----------------Task 3------------------\n\n");
 
-	       //getE1Diff(0x60000000);
-         //getE1Diff(0x02000000L);
-	       reduceOptionsForKn("a");
+	      reduceOptionsForKn("a");
 
-         // TASK 4
-         reduceOptionsForKn("b");
+        // TASK 4
+        System.out.println("\n \n -----------------Task 4------------------\n\n");
 
-
-
+        reduceOptionsForKn("b");
 
          /* Code used to find InputDiff and OutputDiff for Task 4
+
+         getE1Diff(0x60000000);
+         getE1Diff(0x02000000L);
          long DeltaO = 0b111;
          DeltaO = DeltaO << 24;
          System.out.println(Long.toBinaryString(DeltaO));
